@@ -1,0 +1,837 @@
+<div class="pdp-recipes-section" style="
+    {% if section.settings.background_image != blank %}
+      background-image: url('{{ section.settings.background_image | img_url: 'master' }}');
+    {% endif %}
+    {% if product.metafields.custom.accent_color != blank %}
+      border-color: {{ product.metafields.custom.accent_color.value }} !important;
+    {% endif %}
+  ">
+  <div class="page-width pdp-recipes-container">
+
+    {% unless product.tags contains 'hide-recipies' %}
+      <div class="pdp-recipes-heading">
+        <h2>{{ product.title | remove: "(Special)" }} RECIPE CORNER</h2>
+      </div>
+
+      <div class="pdp-recipes-inners-main">
+        <slider-component class="slider-mobile-gutter pdp-recipes-slider">
+          <ul
+            id="Slider-{{ section.id }}"
+            class="slider pdp-recipes-list"
+            role="list"
+            aria-label="Recipes slider">
+            {% if product.metafields.custom.seasoning_recipe_corner_blog_url != blank %}
+              {% assign customposts = product.metafields.custom.seasoning_recipe_corner_blog_url.value %}
+              {% for custompost in customposts %}
+                {% assign Cpost = articles[custompost] %}
+                <li id="Slide-{{ section.id }}-{{ forloop.index }}" class="slider__slide pdp-recipes-item {{ Cpost.title | downcase }}">
+                  <div class="pdp-recipes-card">
+                    <a href="{{ Cpost.url }}" class="pdp-recipes-card__link">
+                      <img
+                        src="{{ Cpost.image | img_url: 'master' }}"
+                        class="pdp-recipes-card__image"
+                        alt="{{ Cpost.title }}" />
+                      <p class="pdp-recipes-card__title">{{ Cpost.title }}</p>
+                    </a>
+                  </div>
+                </li>
+              {% endfor %}
+            {% else %}
+              {% for article in blogs['recipes'].articles limit: 4 %}
+                <li id="Slide-{{ section.id }}-{{ forloop.index }}" class="slider__slide pdp-recipes-item {{ article.title | downcase }}">
+                  <div class="pdp-recipes-card">
+                    <a href="{{ article.url }}" class="pdp-recipes-card__link">
+                      <img
+                        src="{{ article.image | img_url: 'master' }}"
+                        class="pdp-recipes-card__image"
+                        alt="{{ article.title }}" />
+                      <p class="pdp-recipes-card__title">{{ article.title }}</p>
+                    </a>
+                  </div>
+                </li>
+              {% endfor %}
+            {% endif %}
+          </ul>
+
+          <div class="slider-buttons main-recipes-slider-btn">
+            <button
+              type="button"
+              class="slider-button slider-button--prev"
+              name="previous"
+              aria-label="Previous slide"
+              aria-controls="Slider-{{ section.id }}">
+              <img src="https://flavorgod.com/cdn/shop/files/Icon_ionic-ios-arrow-back_ae52da21-46b6-4432-bf8b-a06b917450c4.png?v=1667589752" alt="Previous slide" />
+            </button>
+            <button
+              type="button"
+              class="slider-button slider-button--next"
+              name="next"
+              aria-label="Next slide"
+              aria-controls="Slider-{{ section.id }}">
+              <img src="https://flavorgod.com/cdn/shop/files/Icon_ionic-ios-arrow-back.png?v=1667589719" alt="Next slide" />
+            </button>
+          </div>
+        </slider-component>
+
+        <div class="pdp-recipes-view-all">
+          <a href="/blogs/recipes">VIEW ALL RECIPES</a>
+        </div>
+      </div>
+    {% endunless %}
+
+    <div class="pdp-recipes-promo">
+      <div class="pdp-recipes-promo__grid">
+        <div class="pdp-recipes-promo__item pdp-recipes-promo__order-1 pdp-recipes-promo__image-col pdp-recipes-promo__image-col--left">
+          <div class="pdp-recipes-promo__image-wrapper">
+            <img
+              src="{{ section.settings.left_img | img_url: '700x' }}"
+              class="pdp-recipes-promo__img"
+              alt="">
+          </div>
+        </div>
+        <div class="pdp-recipes-promo__item pdp-recipes-promo__order-2 pdp-recipes-promo__text-col pdp-recipes-promo__text-col--left">
+          <h3>{{ section.settings.left_head }}</h3>
+          <div class="pdp-recipes-promo__text js-read-more" data-words-limit="12">
+            <p>{{ section.settings.left_text }}</p>
+          </div>
+        </div>
+        <div class="pdp-recipes-promo__item pdp-recipes-promo__order-4 pdp-recipes-promo__text-col pdp-recipes-promo__text-col--right">
+          <h3>{{ section.settings.right_head }}</h3>
+          <div class="pdp-recipes-promo__text js-read-more" data-words-limit="13">
+            <p>{{ section.settings.right_text }}</p>
+          </div>
+        </div>
+        <div class="pdp-recipes-promo__item pdp-recipes-promo__order-3 pdp-recipes-promo__image-col pdp-recipes-promo__image-col--right">
+          <div class="pdp-recipes-promo__image-wrapper">
+            <img
+              src="{{ section.settings.right_img | img_url: '700x' }}"
+              class="pdp-recipes-promo__img"
+              alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const initReadMore = () => {
+      document.querySelectorAll('.js-read-more').forEach(container => {
+        if (container.dataset.initialized === 'true') return;
+        container.dataset.initialized = 'true';
+        
+        const originalHTML = container.innerHTML.trim();
+        const textContent = container.textContent.trim();
+        const words = textContent.split(/\s+/);
+        const limit = parseInt(container.dataset.wordsLimit || '12', 10);
+        
+        if (words.length <= limit) return;
+        
+        const truncatedText = words.slice(0, limit).join(' ') + '...';
+        
+        container.innerHTML = '';
+        
+        const textSpan = document.createElement('span');
+        textSpan.className = 'read-more-text';
+        textSpan.innerHTML = truncatedText;
+        container.appendChild(textSpan);
+        
+        const toggleLink = document.createElement('a');
+        toggleLink.href = '#';
+        toggleLink.className = 'toggle-text-link';
+        toggleLink.style.color = '#e13b3b';
+        toggleLink.style.textDecoration = 'none';
+        toggleLink.style.fontWeight = '500';
+        toggleLink.style.cursor = 'pointer';
+        toggleLink.textContent = ' Read More';
+        container.appendChild(toggleLink);
+        
+        let isExpanded = false;
+        
+        toggleLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (isExpanded) {
+            textSpan.innerHTML = truncatedText;
+            toggleLink.textContent = ' Read More';
+            toggleLink.style.display = 'inline';
+            isExpanded = false;
+          } else {
+            textSpan.innerHTML = originalHTML;
+            toggleLink.textContent = ' Read Less';
+            toggleLink.style.display = 'inline';
+            isExpanded = true;
+          }
+        });
+      });
+    };
+    initReadMore();
+
+    const slider = document.querySelector('#Slider-{{ section.id }}');
+    if (slider) {
+      const originalItems = Array.from(slider.querySelectorAll('.pdp-recipes-item:not(.pdp-recipes-item-clone)'));
+      const numOriginals = originalItems.length;
+
+      if (numOriginals <= 3) {
+        slider.classList.add('pdp-recipes-list--static');
+        const sliderComponent = slider.closest('slider-component');
+        if (sliderComponent) {
+          sliderComponent.classList.add('pdp-recipes-slider--static');
+        }
+        return;
+      }
+    }
+
+    const initInfiniteLoop = () => {
+      const slider = document.querySelector('#Slider-{{ section.id }}');
+      if (!slider) return;
+
+      const originalItems = Array.from(slider.querySelectorAll('.pdp-recipes-item:not(.pdp-recipes-item-clone)'));
+      const numOriginals = originalItems.length;
+      if (numOriginals <= 1) return;
+
+      const cloneCount = Math.min(3, numOriginals);
+
+      // Clone the last items and prepend
+      const endClones = originalItems.slice(-cloneCount).map((item, idx) => {
+        const clone = item.cloneNode(true);
+        clone.id = `Slide-{{ section.id }}-clone-start-${idx}`;
+        clone.classList.add('pdp-recipes-item-clone');
+        return clone;
+      });
+
+      // Clone the first items and append
+      const startClones = originalItems.slice(0, cloneCount).map((item, idx) => {
+        const clone = item.cloneNode(true);
+        clone.id = `Slide-{{ section.id }}-clone-end-${idx}`;
+        clone.classList.add('pdp-recipes-item-clone');
+        return clone;
+      });
+
+      // Prepend endClones (reverse so they keep the correct order)
+      endClones.reverse().forEach(clone => {
+        slider.insertBefore(clone, slider.firstChild);
+      });
+
+      // Append startClones
+      startClones.forEach(clone => {
+        slider.appendChild(clone);
+      });
+
+      const sliderComponent = slider.closest('slider-component');
+      if (sliderComponent) {
+        sliderComponent.enableSliderLooping = true;
+        if (typeof sliderComponent.resetPages === 'function') {
+          sliderComponent.resetPages();
+        }
+      }
+
+      // Initial scroll to the first original item
+      const setInitialScroll = () => {
+        const itemOffset = (sliderComponent && sliderComponent.sliderItemOffset) || (slider.firstElementChild ? slider.firstElementChild.clientWidth : 0);
+        if (itemOffset > 0) {
+          slider.style.scrollBehavior = 'auto';
+          slider.scrollLeft = cloneCount * itemOffset;
+          slider.style.scrollBehavior = '';
+        }
+      };
+
+      setInitialScroll();
+      setTimeout(setInitialScroll, 50);
+      setTimeout(setInitialScroll, 300);
+
+      // Handle looping on scroll
+      let isJumping = false;
+      const checkLoop = () => {
+        if (isJumping) return;
+
+        const itemOffset = (sliderComponent && sliderComponent.sliderItemOffset) || (slider.firstElementChild ? slider.firstElementChild.clientWidth : 0);
+        if (itemOffset <= 0) return;
+
+        const currentScroll = slider.scrollLeft;
+        const minScroll = cloneCount * itemOffset;
+        const maxScroll = (cloneCount + numOriginals) * itemOffset;
+
+        if (currentScroll >= maxScroll - 1) {
+          isJumping = true;
+          slider.style.scrollBehavior = 'auto';
+          slider.scrollLeft = currentScroll - (numOriginals * itemOffset);
+          requestAnimationFrame(() => {
+            slider.style.scrollBehavior = '';
+            isJumping = false;
+          });
+        } else if (currentScroll < minScroll) {
+          isJumping = true;
+          slider.style.scrollBehavior = 'auto';
+          slider.scrollLeft = currentScroll + (numOriginals * itemOffset);
+          requestAnimationFrame(() => {
+            slider.style.scrollBehavior = '';
+            isJumping = false;
+          });
+        }
+      };
+
+      slider.addEventListener('scroll', checkLoop);
+
+      // Keep aligned on resize
+      window.addEventListener('resize', () => {
+        const itemOffset = (sliderComponent && sliderComponent.sliderItemOffset) || (slider.firstElementChild ? slider.firstElementChild.clientWidth : 0);
+        if (itemOffset > 0) {
+          const currentScroll = slider.scrollLeft;
+          const closestPageIndex = Math.round(currentScroll / itemOffset);
+          slider.style.scrollBehavior = 'auto';
+          slider.scrollLeft = closestPageIndex * itemOffset;
+          slider.style.scrollBehavior = '';
+        }
+      });
+    };
+    initInfiniteLoop();
+
+    const initDragToScroll = () => {
+      const slider = document.querySelector('#Slider-{{ section.id }}');
+      if (!slider) return;
+
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+      let moved = false;
+
+      const handleMouseDown = (e) => {
+        isDown = true;
+        moved = false;
+        slider.classList.add('active-dragging');
+        startX = e.clientX;
+        scrollLeft = slider.scrollLeft;
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      };
+
+      const handleMouseMove = (e) => {
+        if (!isDown) return;
+        
+        const x = e.clientX;
+        const walk = (x - startX) * 1.5; // Scroll speed modifier
+        
+        if (Math.abs(x - startX) > 5) {
+          moved = true;
+          slider.scrollLeft = scrollLeft - walk;
+        }
+      };
+
+      const handleMouseUp = (e) => {
+        if (!isDown) return;
+        isDown = false;
+        slider.classList.remove('active-dragging');
+
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+
+        if (moved) {
+          // If we actually dragged, prevent link click triggers
+          const preventClick = (event) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          };
+          const links = slider.querySelectorAll('a');
+          links.forEach(link => {
+            link.addEventListener('click', preventClick, { once: true });
+          });
+
+          // Calculate closest slide position and snap to it smoothly
+          const sliderComponent = slider.closest('slider-component');
+          const itemOffset = (sliderComponent && sliderComponent.sliderItemOffset) || (slider.firstElementChild ? slider.firstElementChild.clientWidth : 0);
+          if (itemOffset > 0) {
+            const currentScroll = slider.scrollLeft;
+            const closestPageIndex = Math.round(currentScroll / itemOffset);
+            const targetScroll = closestPageIndex * itemOffset;
+            
+            slider.style.scrollBehavior = 'smooth';
+            slider.scrollLeft = targetScroll;
+            setTimeout(() => {
+              slider.style.scrollBehavior = '';
+            }, 500);
+          }
+        }
+      };
+
+      slider.addEventListener('mousedown', handleMouseDown);
+      
+      // Stop native drag-and-drop ghost image/link tracking
+      slider.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+      });
+    };
+    initDragToScroll();
+  });
+</script>
+
+{% stylesheet %}
+
+  .pdp-recipes-section {
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    background-image: url('/cdn/shop/files/Rectangle-628.png?v=1667584137');
+    padding-bottom: 90px;
+    margin-top: 190px;
+    border-top: 40px solid #9d2d6f;
+  }
+  .pdp-recipes-heading {
+    padding-top: 110px;
+    text-align: center;
+  }
+  .pdp-recipes-heading h2 {
+    font-family: Futura LT, Futura, 'Trebuchet MS', Arial, sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    font-size: 50px;
+    color: #000;
+    margin-bottom: 40px;
+    display: inline-block;
+    margin-top: 0;
+    position: relative;
+  }
+  .pdp-recipes-heading h2:after {
+    content: "";
+    background: url('/cdn/shop/files/asdasd.png?v=1667928108') no-repeat;
+    position: absolute;
+    width: 151px;
+    height: 123px;
+    top: -258px;
+    right: 0;
+  }
+
+  .pdp-recipes-slider {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .pdp-recipes-slider ul.pdp-recipes-list {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    gap: 0;
+    cursor: grab;
+  }
+  .pdp-recipes-slider ul.pdp-recipes-list.active-dragging {
+    cursor: grabbing;
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+  }
+
+  /* Static layout styling for 3 or fewer items */
+  .pdp-recipes-slider.pdp-recipes-slider--static .main-recipes-slider-btn {
+    display: none !important;
+  }
+  .pdp-recipes-slider ul.pdp-recipes-list.pdp-recipes-list--static {
+    justify-content: center !important;
+    overflow-x: visible !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+    cursor: default !important;
+    scroll-snap-type: none !important;
+  }
+  .pdp-recipes-slider ul.pdp-recipes-list.pdp-recipes-list--static li.pdp-recipes-item {
+    flex: 0 0 33.333% !important;
+    max-width: 33.333% !important;
+    scroll-snap-align: none !important;
+  }
+
+  .pdp-recipes-slider ul.pdp-recipes-list img,
+  .pdp-recipes-slider ul.pdp-recipes-list a {
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .pdp-recipes-slider ul.pdp-recipes-list::-webkit-scrollbar {
+    display: none;
+  }
+  .pdp-recipes-slider ul.pdp-recipes-list {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .pdp-recipes-slider ul.pdp-recipes-list li.pdp-recipes-item {
+    flex: 0 0 33.333%;
+    scroll-snap-align: start;
+    box-sizing: border-box;
+    padding: 0 15px;
+  }
+
+  .pdp-recipes-card {
+    text-align: center;
+  }
+  .pdp-recipes-card__link {
+    text-decoration: none;
+  }
+  .pdp-recipes-card__image {
+    display: block !important;
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+  }
+  .pdp-recipes-card__title {
+    font-family: Futura LT, Futura, 'Trebuchet MS', Arial, sans-serif;
+    text-align: center;
+    letter-spacing: 0;
+    font-size: 30px;
+    color: #000;
+    margin-top: 30px;
+  }
+
+  .pdp-recipes-view-all {
+    text-align: center;
+    margin-top: 50px;
+  }
+  .pdp-recipes-view-all a {
+    transition: 0.45s;
+    width: 420px;
+    display: inline-block;
+    height: 85px;
+    line-height: 85px;
+    background: var(--site-color);
+    color: #fff;
+    font-family: Futura LT, Futura, 'Trebuchet MS', Arial, sans-serif;
+    text-align: center;
+    letter-spacing: 0;
+    font-size: 29px;
+    border-radius: 50px;
+    text-decoration: none;
+  }
+  .pdp-recipes-view-all a:hover {
+    background: #000;
+  }
+
+  /* Slider arrows for mobile view only */
+  .pdp-recipes-slider .main-recipes-slider-btn {
+    position: absolute;
+    top: 50%;
+    left: -40px;
+    right: -40px;
+    display: none !important;
+    justify-content: space-between;
+    align-items: center;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .pdp-recipes-slider .main-recipes-slider-btn button {
+    pointer-events: auto;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+  }
+  .pdp-recipes-slider .main-recipes-slider-btn button:hover {
+    transform: scale(1.1);
+  }
+  .pdp-recipes-slider .main-recipes-slider-btn button[disabled="disabled"],
+  .pdp-recipes-slider .main-recipes-slider-btn button[disabled] {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .pdp-recipes-slider .main-recipes-slider-btn button img {
+    width: 22px;
+    height: auto;
+  }
+
+  /* Promo Banner Grid */
+  .pdp-recipes-promo {
+    margin: 100px auto 0;
+  }
+  .pdp-recipes-promo__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .pdp-recipes-promo__item {
+    padding: 0 26px;
+    box-sizing: border-box;
+  }
+  .pdp-recipes-promo__image-col--left {
+    text-align: right;
+  }
+  .pdp-recipes-promo__img {
+    max-width: 100%;
+    height: auto;
+  }
+  .pdp-recipes-promo__text-col h3 {
+    font-size: 35px;
+    color: #1e1e1e;
+    font-family: Futura LT, Futura, 'Trebuchet MS', Arial, sans-serif;
+    margin-bottom: 20px;
+    letter-spacing: 0;
+    margin-top: 0;
+  }
+  .pdp-recipes-promo__text-col p,
+  .pdp-recipes-promo__text-col .pdp-recipes-promo__text {
+    font-family: Futura Bk, Futura, 'Trebuchet MS', Arial, sans-serif;
+    font-size: 32px;
+    color: #1e1e1e;
+    line-height: 1.7;
+    letter-spacing: 0;
+  }
+  .pdp-recipes-promo__text-col .pdp-recipes-promo__text a.toggle-text-link {
+    color: #e13b3b !important;
+    text-decoration: none !important;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-block;
+  }
+  .pdp-recipes-promo__text-col .pdp-recipes-promo__text a.toggle-text-link:hover {
+    color: #e13b3b !important;
+    text-decoration: underline !important;
+  }
+  .pdp-recipes-promo__text-col p a.read-more-toggle,
+  .pdp-recipes-promo__text-col p a.read-less-toggle {
+    text-decoration: none;
+  }
+  .pdp-recipes-promo__text-col--right {
+    text-align: right;
+    margin-top: 100px;
+  }
+
+  /* Order classes for staggered desktop and sequential mobile */
+  .pdp-recipes-promo__order-1 {
+    order: 1;
+  }
+  .pdp-recipes-promo__order-2 {
+    order: 2;
+  }
+  .pdp-recipes-promo__order-3 {
+    order: 4;
+  } /* Desktop: right image goes to Col 2, Row 2 (order 4) */
+  .pdp-recipes-promo__order-4 {
+    order: 3;
+  } /* Desktop: right text goes to Col 1, Row 2 (order 3) */
+
+  @media screen and (max-width: 989px) {
+    .pdp-recipes-slider ul.pdp-recipes-list.pdp-recipes-list--static li.pdp-recipes-item {
+      flex: 0 0 50% !important;
+      max-width: 50% !important;
+    }
+  }
+  @media screen and (max-width: 749px) {
+    .pdp-recipes-slider ul.pdp-recipes-list.pdp-recipes-list--static li.pdp-recipes-item {
+      flex: 0 0 50% !important;
+      max-width: 50% !important;
+    }
+  }
+  @media screen and (max-width: 1200px) {
+    .pdp-recipes-heading h2 {
+      font-size: 44px;
+    }
+    .pdp-recipes-promo__text-col h3 {
+      font-size: 25px;
+    }
+    .pdp-recipes-promo__text-col p,
+    .pdp-recipes-promo__text-col .pdp-recipes-promo__text {
+      font-size: 24px;
+      line-height: 1.5;
+    }
+    .pdp-recipes-promo__text-col--right {
+      margin-top: 50px;
+    }
+    .pdp-recipes-slider .main-recipes-slider-btn {
+      left: 10px;
+      right: 10px;
+    }
+    .pdp-recipes-view-all a {
+      height: 70px;
+      line-height: 70px;
+    }
+  }
+  @media screen and (max-width: 1000px) {
+    .pdp-recipes-section {
+      margin-top: 100px;
+    }
+    .pdp-recipes-heading h2 {
+      font-size: 40px;
+    }
+    .pdp-recipes-card__title {
+      font-size: 22px;
+    }
+    .pdp-recipes-view-all a {
+      height: 70px;
+      line-height: 70px;
+    }
+  }
+  @media screen and (max-width: 989px) {
+    .pdp-recipes-slider ul.pdp-recipes-list {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      justify-content: flex-start;
+    }
+    .pdp-recipes-slider ul.pdp-recipes-list li.pdp-recipes-item {
+      flex: 0 0 50%;
+      scroll-snap-align: start;
+      display: block !important;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .pdp-recipes-slider ul.pdp-recipes-list li.pdp-recipes-item {
+      flex: 0 0 50% !important;
+      max-width: 50% !important;
+    }
+    .pdp-recipes-card__image {
+      height: 200px !important;
+    }
+    .pdp-recipes-card__title {
+      font-size: 19px !important;
+      margin-top: 20px !important;
+    }
+    .pdp-recipes-slider .main-recipes-slider-btn {
+      left: 0;
+      right: 0;
+    }
+    .pdp-recipes-slider .main-recipes-slider-btn button img {
+      width: 17px;
+    }
+    .pdp-recipes-promo__grid {
+      grid-template-columns: 1fr;
+      margin-top: 40px;
+    }
+    .pdp-recipes-promo__item {
+      padding: 0;
+    }
+    .pdp-recipes-promo__image-col--left {
+      text-align: center;
+    }
+    .pdp-recipes-promo__text-col--right {
+      text-align: left;
+      margin-top: 0;
+    }
+    /* Mobile: sequential order -> image, text, image, text */
+    .pdp-recipes-promo__order-3 {
+      order: 3;
+    }
+    .pdp-recipes-promo__order-4 {
+      order: 4;
+    }
+    .pdp-recipes-section {
+
+      border-top: 10px solid #9d2d6f;
+    }
+    .pdp-recipes-section {
+      margin-top: 0;
+      padding-bottom: 60px;
+    }
+    .pdp-recipes-heading h2:after {
+
+      width: 75px;
+      height: 63px;
+      top: -123px;
+      right: auto;
+      background-size: contain;
+      left: 32px;
+    }
+    .pdp-recipes-heading {
+      padding-top: 60px;
+    }
+    .pdp-recipes-heading h2 {
+      font-size: 26px;
+    }
+    .pdp-recipes-view-all a {
+      height: 40px;
+      line-height: 40px;
+      font-size: 15px;
+      width: 200px;
+    }
+    .pdp-recipes-view-all {
+
+      margin-top: 15px;
+    }
+    .pdp-recipes-slider {
+
+      margin-left: -15px;
+      margin-right: -15px;
+    }
+    .pdp-recipes-promo {
+      margin: 40px auto 0;
+    }
+    .pdp-recipes-promo__text-col h3 {
+      margin-top: 20px;
+    }
+    .pdp-recipes-promo__text-col p,
+    .pdp-recipes-promo__text-col .pdp-recipes-promo__text {
+      font-size: 20px;
+      line-height: 1.5;
+    }
+    .pdp-recipes-promo__item.pdp-recipes-promo__text-col--left {
+      margin-bottom: 50px;
+    }
+  }
+
+
+{% endstylesheet %}
+
+{% schema %}
+  {
+    "name": "PDP Recipes",
+    "enabled_on": {
+      "templates": ["product"]
+    },
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "background_image",
+        "label": "Background Image"
+      },
+      {
+        "id": "left_img",
+        "type": "image_picker",
+        "label": "Add Left Image"
+      },
+      {
+        "id": "left_head",
+        "type": "text",
+        "label": "Add Heading"
+      },
+      {
+        "id": "left_text",
+        "type": "textarea",
+        "label": "Add Text"
+      }, {
+        "id": "right_img",
+        "type": "image_picker",
+        "label": "Add Right Image"
+      }, {
+        "id": "right_head",
+        "type": "text",
+        "label": "Add Heading"
+      }, {
+        "id": "right_text",
+        "type": "textarea",
+        "label": "Add Text"
+      }
+    ],
+    "presets": [
+      {
+        "category": "Product",
+        "name": "PDP Recipes",
+        "settings": {}
+      }
+    ]
+  }
+{% endschema %}
