@@ -1,0 +1,2007 @@
+{%- liquid
+  assign first_desktop_image = nil
+  assign first_mobile_image = nil
+  for block in section.blocks
+    if block.settings.desktop_image != blank and first_desktop_image == nil
+      assign first_desktop_image = block.settings.desktop_image
+    endif
+    if block.settings.mobile_image != blank and first_mobile_image == nil
+      assign first_mobile_image = block.settings.mobile_image
+    endif
+  endfor
+-%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    --slideshow-max-width: {{ section.settings.section_max_width }};
+    --z-index: {{ section.settings.z_index }};
+    --fade-duration: {{ section.settings.fade_duration }}ms;
+    
+    /* Navigation Arrows */
+    --arrow-size: {{ section.settings.arrow_size }}px;
+    --arrow-bg: {{ section.settings.arrow_bg_color }};
+    --arrow-color: {{ section.settings.arrow_icon_color }};
+    --arrow-radius: {{ section.settings.arrow_border_radius }}%;
+    --arrow-offset-desktop: {{ section.settings.arrow_offset_desktop }}px;
+    --arrow-offset-mobile: {{ section.settings.arrow_offset_mobile }}px;
+    
+    /* Navigation Dots */
+    --dot-size: {{ section.settings.dot_size }}px;
+    --dot-gap: {{ section.settings.dot_gap }}px;
+    --dot-color: {{ section.settings.dot_color }};
+    --dot-color-active: {{ section.settings.active_dot_color }};
+    --dot-bottom-spacing: {{ section.settings.dot_bottom_spacing }}px;
+    
+    /* Typography Scales - Desktop */
+    --heading-size-desktop: {{ section.settings.heading_size }}px;
+    --subheading-size-desktop: {{ section.settings.subheading_size }}px;
+    --desc-size-desktop: {{ section.settings.desc_size }}px;
+    
+    /* Typography Scales - Mobile */
+    --heading-size-mobile: {{ section.settings.heading_size_mobile }}px;
+    --subheading-size-mobile: {{ section.settings.subheading_size_mobile }}px;
+    --desc-size-mobile: {{ section.settings.desc_size_mobile }}px;
+    
+    /* Custom Height */
+    --desktop-custom-height: {{ section.settings.custom_desktop_height }}px;
+    --mobile-custom-height: {{ section.settings.custom_mobile_height }}px;
+
+    /* Aspect Ratio Heights */
+    {%- if section.settings.desktop_height == 'adapt' and first_desktop_image != blank -%}
+      --desktop-aspect-ratio: {{ first_desktop_image.aspect_ratio }};
+    {%- else -%}
+      --desktop-aspect-ratio: 16/9;
+    {%- endif -%}
+
+    {%- if section.settings.mobile_height == 'adapt' -%}
+      {%- if first_mobile_image != blank -%}
+        --mobile-aspect-ratio: {{ first_mobile_image.aspect_ratio }};
+      {%- elsif first_desktop_image != blank -%}
+        --mobile-aspect-ratio: {{ first_desktop_image.aspect_ratio }};
+      {%- else -%}
+        --mobile-aspect-ratio: 1;
+      {%- endif -%}
+    {%- endif -%}
+  }
+
+  .premium-slideshow-container {
+    position: relative;
+    width: 100%;
+    max-width: var(--slideshow-max-width);
+    margin: 0 auto;
+    z-index: var(--z-index);
+    overflow: hidden;
+  }
+
+  hero-slideshow {
+    display: block;
+    position: relative;
+    width: 100%;
+  }
+
+  .premium-slideshow {
+    position: relative;
+    width: 100%;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Height Controls - Desktop */
+  @media screen and (min-width: 990px) {
+    .premium-slideshow--height-adapt {
+      aspect-ratio: var(--desktop-aspect-ratio);
+    }
+    .premium-slideshow--height-small {
+      height: 450px;
+    }
+    .premium-slideshow--height-medium {
+      height: 550px;
+    }
+    .premium-slideshow--height-large {
+      height: 650px;
+    }
+    .premium-slideshow--height-xlarge {
+      height: 750px;
+    }
+    .premium-slideshow--height-fullscreen {
+      height: 100vh;
+    }
+    .premium-slideshow--height-custom {
+      height: var(--desktop-custom-height);
+    }
+  }
+
+  /* Height Controls - Mobile / Tablet */
+  @media screen and (max-width: 989px) {
+    .premium-slideshow--height-adapt {
+      aspect-ratio: var(--mobile-aspect-ratio);
+    }
+    .premium-slideshow--height-small {
+      height: 350px;
+    }
+    .premium-slideshow--height-medium {
+      height: 450px;
+    }
+    .premium-slideshow--height-large {
+      height: 550px;
+    }
+    .premium-slideshow--height-fullscreen {
+      height: 100vh;
+      height: 100svh;
+    }
+    .premium-slideshow--height-custom {
+      height: var(--mobile-custom-height);
+    }
+  }
+
+  /* Override Height Settings if Mobile height option is explicitly chosen */
+  @media screen and (max-width: 767px) {
+    .premium-slideshow--mobile-height-adapt {
+      aspect-ratio: var(--mobile-aspect-ratio);
+      height: auto !important;
+    }
+    .premium-slideshow--mobile-height-small {
+      height: 300px !important;
+    }
+    .premium-slideshow--mobile-height-medium {
+      height: 400px !important;
+    }
+    .premium-slideshow--mobile-height-large {
+      height: 500px !important;
+    }
+    .premium-slideshow--mobile-height-fullscreen {
+      height: 100vh !important;
+      height: 100svh !important;
+    }
+    .premium-slideshow--mobile-height-custom {
+      height: var(--mobile-custom-height) !important;
+    }
+  }
+
+  .premium-slideshow__track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .premium-slideshow__slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--fade-duration) ease-in-out, visibility var(--fade-duration) ease-in-out;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .premium-slideshow__slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  .premium-slideshow__slide-link-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    display: block;
+    cursor: pointer;
+  }
+
+  /* Media wrapper & styling */
+  .premium-slideshow__media-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .premium-slideshow__picture,
+  .premium-slideshow__image,
+  .premium-slideshow__video-wrapper,
+  .premium-slideshow__video,
+  .premium-slideshow__placeholder {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  /* Text Overlay */
+  .premium-slideshow__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  /* Content Wrapper Layout styling */
+  .premium-slideshow__content-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    z-index: 3;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  .premium-slideshow__content {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--content-width, 700px);
+    padding: var(--content-padding-desktop, 40px);
+    box-sizing: border-box;
+  }
+
+  @media screen and (max-width: 767px) {
+    .premium-slideshow__content {
+      padding: var(--content-padding-mobile, 20px);
+    }
+  }
+
+  /* Alignments using flex properties */
+  .premium-slideshow__content-wrapper--h-left { justify-content: flex-start; }
+  .premium-slideshow__content-wrapper--h-center { justify-content: center; }
+  .premium-slideshow__content-wrapper--h-right { justify-content: flex-end; }
+
+  .premium-slideshow__content-wrapper--v-top { align-items: flex-start; }
+  .premium-slideshow__content-wrapper--v-middle { align-items: center; }
+  .premium-slideshow__content-wrapper--v-bottom { align-items: flex-end; }
+
+  /* Typography alignment and colors */
+  .premium-slideshow__content--align-left { text-align: left; }
+  .premium-slideshow__content--align-center { text-align: center; }
+  .premium-slideshow__content--align-right { text-align: right; }
+
+  .premium-slideshow__subheading {
+    font-size: var(--subheading-size-desktop);
+    color: var(--subheading-color);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0 0 10px 0;
+    line-height: 1.2;
+  }
+
+  .premium-slideshow__heading {
+    font-size: var(--heading-size-desktop);
+    color: var(--text-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0 0 15px 0;
+    line-height: 1.1;
+  }
+
+  .premium-slideshow__description {
+    font-size: var(--desc-size-desktop);
+    color: var(--text-color);
+    margin: 0 0 25px 0;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .premium-slideshow__description p {
+    margin: 0;
+  }
+
+  .premium-slideshow__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: inherit;
+    position: relative;
+    z-index: 5;
+  }
+  
+  .premium-slideshow__content--align-center .premium-slideshow__buttons {
+    justify-content: center;
+  }
+  .premium-slideshow__content--align-left .premium-slideshow__buttons {
+    justify-content: flex-start;
+  }
+  .premium-slideshow__content--align-right .premium-slideshow__buttons {
+    justify-content: flex-end;
+  }
+
+  .premium-slideshow__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: {{ section.settings.button_radius }}px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    min-width: 160px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  /* Responsive typography overrides */
+  @media screen and (max-width: 767px) {
+    .premium-slideshow__heading {
+      font-size: var(--heading-size-mobile);
+    }
+    .premium-slideshow__subheading {
+      font-size: var(--subheading-size-mobile);
+    }
+    .premium-slideshow__description {
+      font-size: var(--desc-size-mobile);
+    }
+  }
+
+  /* Navigation: Arrow Controls */
+  .premium-slideshow__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--arrow-size);
+    height: var(--arrow-size);
+    background-color: var(--arrow-bg);
+    color: var(--arrow-color);
+    border: none;
+    border-radius: var(--arrow-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background-color 0.3s, opacity 0.3s, transform 0.3s;
+    box-sizing: border-box;
+  }
+
+  .premium-slideshow__arrow svg {
+    width: 45%;
+    height: 45%;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .premium-slideshow__arrow--prev {
+    left: var(--arrow-offset-desktop);
+  }
+
+  .premium-slideshow__arrow--next {
+    right: var(--arrow-offset-desktop);
+  }
+
+  .premium-slideshow__arrow:hover {
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  .premium-slideshow__arrow:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  /* Hide arrows on mobile if option selected */
+  {%- unless section.settings.show_arrows_desktop -%}
+    @media screen and (min-width: 768px) {
+      .premium-slideshow__arrow { display: none !important; }
+    }
+  {%- endunless -%}
+
+  {%- if section.settings.show_arrows_mobile -%}
+    @media screen and (max-width: 767px) {
+      .premium-slideshow__arrow--prev {
+        left: var(--arrow-offset-mobile);
+      }
+      .premium-slideshow__arrow--next {
+        right: var(--arrow-offset-mobile);
+      }
+    }
+  {%- else -%}
+    @media screen and (max-width: 767px) {
+      .premium-slideshow__arrow { display: none !important; }
+    }
+  {%- endif -%}
+
+  /* Navigation: Dots */
+  .premium-slideshow__dots {
+    position: absolute;
+    bottom: var(--dot-bottom-spacing);
+    display: flex;
+    align-items: center;
+    gap: var(--dot-gap);
+    z-index: 10;
+  }
+
+  @media screen and (max-width: 768px) {
+    .premium-slideshow__dots {
+      bottom: 4px;
+    }
+  }
+
+  .premium-slideshow__dots--left { left: 40px; transform: none; }
+  .premium-slideshow__dots--center { left: 50%; transform: translateX(-50%); }
+  .premium-slideshow__dots--right { right: 40px; transform: none; }
+
+  .premium-slideshow__dot {
+    width: var(--dot-size);
+    height: var(--dot-size);
+    border-radius: 100px;
+    background-color: var(--dot-color);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: background-color 0.3s ease, width 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s ease;
+    transform-origin: center;
+  }
+
+  .premium-slideshow__dot.is-active {
+    width: calc(var(--dot-size) * 3);
+    background-color: var(--dot-color-active);
+  }
+
+  /* Show/Hide Dots */
+  {%- unless section.settings.show_dots_desktop -%}
+    @media screen and (min-width: 768px) {
+      .premium-slideshow__dots { display: none !important; }
+    }
+  {%- endunless -%}
+
+  {%- unless section.settings.show_dots_mobile -%}
+    @media screen and (max-width: 767px) {
+      .premium-slideshow__dots { display: none !important; }
+    }
+  {%- endunless -%}
+
+  /* Custom Cursor Styles for Slider Hover navigation */
+  .premium-slideshow__cursor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #000;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.2);
+    transition: opacity 0.25s ease, transform 0.2s cubic-bezier(0.215, 0.61, 0.355, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .premium-slideshow__cursor-arrow {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .premium-slideshow__cursor-arrow svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .premium-slideshow__cursor[data-direction="prev"] .premium-slideshow__cursor-arrow--prev {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .premium-slideshow__cursor[data-direction="next"] .premium-slideshow__cursor-arrow--next {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .premium-slideshow__cursor.is-active {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  .premium-slideshow__cursor.is-clicking {
+    transform: translate3d(0, 0, 0) scale(0.85);
+  }
+
+  /* Disable Custom Cursor on Touch Devices */
+  @media (pointer: coarse) {
+    .premium-slideshow__cursor {
+      display: none !important;
+    }
+  }
+
+  /* Content Animations */
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes slideLeft {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideRight {
+    from {
+      opacity: 0;
+      transform: translateX(-40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .anim-fade-up .premium-slideshow__subheading,
+  .anim-fade-up .premium-slideshow__heading,
+  .anim-fade-up .premium-slideshow__description,
+  .anim-fade-up .premium-slideshow__buttons {
+    opacity: 0;
+  }
+
+  .is-active.anim-fade-up .premium-slideshow__subheading {
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.1s;
+  }
+  .is-active.anim-fade-up .premium-slideshow__heading {
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+  }
+  .is-active.anim-fade-up .premium-slideshow__description {
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+  }
+  .is-active.anim-fade-up .premium-slideshow__buttons {
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+  }
+
+  .anim-fade-in .premium-slideshow__subheading,
+  .anim-fade-in .premium-slideshow__heading,
+  .anim-fade-in .premium-slideshow__description,
+  .anim-fade-in .premium-slideshow__buttons {
+    opacity: 0;
+  }
+
+  .is-active.anim-fade-in .premium-slideshow__subheading {
+    animation: fadeIn 0.8s ease forwards 0.1s;
+  }
+  .is-active.anim-fade-in .premium-slideshow__heading {
+    animation: fadeIn 0.8s ease forwards 0.2s;
+  }
+  .is-active.anim-fade-in .premium-slideshow__description {
+    animation: fadeIn 0.8s ease forwards 0.3s;
+  }
+  .is-active.anim-fade-in .premium-slideshow__buttons {
+    animation: fadeIn 0.8s ease forwards 0.4s;
+  }
+
+  .anim-scale-in .premium-slideshow__subheading,
+  .anim-scale-in .premium-slideshow__heading,
+  .anim-scale-in .premium-slideshow__description,
+  .anim-scale-in .premium-slideshow__buttons {
+    opacity: 0;
+  }
+
+  .is-active.anim-scale-in .premium-slideshow__subheading {
+    animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.1s;
+  }
+  .is-active.anim-scale-in .premium-slideshow__heading {
+    animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+  }
+  .is-active.anim-scale-in .premium-slideshow__description {
+    animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+  }
+  .is-active.anim-scale-in .premium-slideshow__buttons {
+    animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+  }
+
+  .anim-slide-left .premium-slideshow__subheading,
+  .anim-slide-left .premium-slideshow__heading,
+  .anim-slide-left .premium-slideshow__description,
+  .anim-slide-left .premium-slideshow__buttons {
+    opacity: 0;
+  }
+
+  .is-active.anim-slide-left .premium-slideshow__subheading {
+    animation: slideLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.1s;
+  }
+  .is-active.anim-slide-left .premium-slideshow__heading {
+    animation: slideLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+  }
+  .is-active.anim-slide-left .premium-slideshow__description {
+    animation: slideLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+  }
+  .is-active.anim-slide-left .premium-slideshow__buttons {
+    animation: slideLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+  }
+
+  .anim-slide-right .premium-slideshow__subheading,
+  .anim-slide-right .premium-slideshow__heading,
+  .anim-slide-right .premium-slideshow__description,
+  .anim-slide-right .premium-slideshow__buttons {
+    opacity: 0;
+  }
+
+  .is-active.anim-slide-right .premium-slideshow__subheading {
+    animation: slideRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.1s;
+  }
+  .is-active.anim-slide-right .premium-slideshow__heading {
+    animation: slideRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+  }
+  .is-active.anim-slide-right .premium-slideshow__description {
+    animation: slideRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+  }
+  .is-active.anim-slide-right .premium-slideshow__buttons {
+    animation: slideRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+  }
+</style>
+
+{%- if section.blocks.size > 0 -%}
+  <div class="premium-slideshow-container">
+    <hero-slideshow
+      data-autoplay="{{ section.settings.autoplay }}"
+      data-autoplay-speed="{{ section.settings.autoplay_speed | times: 1000 }}"
+      data-autoplay-limit="{{ section.settings.autoplay_slide_limit | default: 5 }}"
+      data-infinite="{{ section.settings.infinite_loop }}"
+      data-cursor-navigation="{{ section.settings.enable_cursor_navigation }}"
+    >
+      <div 
+        class="premium-slideshow premium-slideshow--height-{{ section.settings.desktop_height }} {% if section.settings.mobile_height != blank %}premium-slideshow--mobile-height-{{ section.settings.mobile_height }}{% endif %}"
+        aria-live="polite"
+        role="rolegroup"
+        aria-label="Slideshow"
+      >
+        <!-- Custom Cursor -->
+        {%- if section.settings.enable_cursor_navigation -%}
+          <div class="premium-slideshow__cursor" aria-hidden="true" data-cursor>
+            <div class="premium-slideshow__cursor-arrow premium-slideshow__cursor-arrow--prev">
+              <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </div>
+            <div class="premium-slideshow__cursor-arrow premium-slideshow__cursor-arrow--next">
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </div>
+          </div>
+        {%- endif -%}
+
+        <!-- Slider Track -->
+        <div class="premium-slideshow__track">
+          {%- for block in section.blocks -%}
+            <div
+              class="premium-slideshow__slide anim-{{ block.settings.content_animation }} {% if forloop.first %}is-active{% endif %}"
+              {{ block.shopify_attributes }}
+              data-index="{{ forloop.index0 }}"
+              role="group"
+              aria-roledescription="slide"
+              aria-label="{{ forloop.index }} of {{ section.blocks.size }}"
+              aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}"
+              style="
+                --content-width: {{ block.settings.content_width }}px;
+                --content-padding-desktop: {{ block.settings.content_padding_desktop }}px;
+                --content-padding-mobile: {{ block.settings.content_padding_mobile }}px;
+                --text-color: {{ block.settings.text_color }};
+                --subheading-color: {{ block.settings.subheading_color }};
+              "
+            >
+              {%- if block.settings.slide_link != blank -%}
+                <a href="{{ block.settings.slide_link }}" class="premium-slideshow__slide-link-overlay" aria-label="{{ block.settings.heading | default: block.settings.subheading | default: 'Slide link' | escape }}"></a>
+              {%- endif -%}
+              <!-- Background Media -->
+              <div class="premium-slideshow__media-wrapper">
+                {%- if block.settings.desktop_video != blank or block.settings.mobile_video != blank -%}
+                  {%- liquid
+                    assign desktop_video_url = nil
+                    if block.settings.desktop_video != blank
+                      for source in block.settings.desktop_video.sources
+                        if source.format == 'mp4'
+                          assign desktop_video_url = source.url
+                          break
+                        endif
+                      endfor
+                    endif
+
+                    assign mobile_video_url = nil
+                    if block.settings.mobile_video != blank
+                      for source in block.settings.mobile_video.sources
+                        if source.format == 'mp4'
+                          assign mobile_video_url = source.url
+                          break
+                        endif
+                      endfor
+                    endif
+
+                    if mobile_video_url == nil
+                      assign mobile_video_url = desktop_video_url
+                    endif
+                    if desktop_video_url == nil
+                      assign desktop_video_url = mobile_video_url
+                    endif
+                  -%}
+                  <div class="premium-slideshow__video-wrapper">
+                    <video
+                      class="premium-slideshow__video"
+                      muted
+                      playsinline
+                      preload="none"
+                      {% if block.settings.desktop_image != blank %}
+                        poster="{{ block.settings.desktop_image | image_url: width: 1400 }}"
+                      {% endif %}
+                      data-src-desktop="{{ desktop_video_url }}"
+                      data-src-mobile="{{ mobile_video_url }}"
+                    ></video>
+                  </div>
+                {%- endif -%}
+
+                {%- comment -%} Show background image if video isn't there or as standard fallback background {%- endcomment -%}
+                {%- if block.settings.desktop_image != blank or block.settings.mobile_image != blank -%}
+                  <picture class="premium-slideshow__picture {% if block.settings.desktop_video != blank or block.settings.mobile_video != blank %}is-hidden{% endif %}" data-image-element>
+                    {%- comment -%}
+                      Slides are stacked, so the browser treats every slide as on-screen and native lazy loading
+                      does nothing: all slides (2.3 MB on mobile) downloaded up front and competed with the LCP image.
+                      Only the first slide gets a real srcset; the rest use data-srcset and are hydrated after
+                      window load or on first interaction (script at the end of this section).
+                    {%- endcomment -%}
+                    {%- liquid
+                      if forloop.first
+                        assign srcset_attr = 'srcset'
+                      else
+                        assign srcset_attr = 'data-deferred-srcset'
+                      endif
+                    -%}
+                    {%- if block.settings.mobile_image != blank -%}
+                      <source media="(max-width: 767px)" {{ srcset_attr }}="{{ block.settings.mobile_image | image_url: width: 450 }} 450w, {{ block.settings.mobile_image | image_url: width: 600 }} 600w, {{ block.settings.mobile_image | image_url: width: 750 }} 750w, {{ block.settings.mobile_image | image_url: width: 900 }} 900w" sizes="100vw">
+                    {%- endif -%}
+                    {%- if block.settings.desktop_image != blank -%}
+                      <source media="(min-width: 768px)" {{ srcset_attr }}="{{ block.settings.desktop_image | image_url: width: 1000 }} 1000w, {{ block.settings.desktop_image | image_url: width: 1400 }} 1400w, {{ block.settings.desktop_image | image_url: width: 1800 }} 1800w, {{ block.settings.desktop_image | image_url: width: 2200 }} 2200w" sizes="100vw">
+                    {%- endif -%}
+
+                    {%- if block.settings.desktop_image != blank -%}
+                      {%- assign alt_text = block.settings.desktop_image.alt | default: block.settings.heading | default: 'Premium Slider Media' -%}
+                      {%- if forloop.first -%}
+                        {{ block.settings.desktop_image | image_url: width: 2200 | image_tag: alt: alt_text, class: 'premium-slideshow__image', fetchpriority: 'high', loading: 'eager', decoding: 'async' }}
+                      {%- else -%}
+                        <img class="premium-slideshow__image" alt="{{ alt_text | escape }}" width="{{ block.settings.desktop_image.width }}" height="{{ block.settings.desktop_image.height }}" decoding="async" data-deferred-src="{{ block.settings.desktop_image | image_url: width: 2200 }}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+                      {%- endif -%}
+                    {%- elsif block.settings.mobile_image != blank -%}
+                      {%- assign alt_text = block.settings.mobile_image.alt | default: block.settings.heading | default: 'Premium Slider Media' -%}
+                      {%- if forloop.first -%}
+                        {{ block.settings.mobile_image | image_url: width: 1000 | image_tag: alt: alt_text, class: 'premium-slideshow__image', fetchpriority: 'high', loading: 'eager', decoding: 'async' }}
+                      {%- else -%}
+                        <img class="premium-slideshow__image" alt="{{ alt_text | escape }}" width="{{ block.settings.mobile_image.width }}" height="{{ block.settings.mobile_image.height }}" decoding="async" data-deferred-src="{{ block.settings.mobile_image | image_url: width: 1000 }}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+                      {%- endif -%}
+                    {%- endif -%}
+                  </picture>
+                {%- elsif block.settings.desktop_video == blank and block.settings.mobile_video == blank -%}
+                  {{ 'lifestyle-1' | placeholder_svg_tag: 'premium-slideshow__placeholder premium-slideshow__image' }}
+                {%- endif -%}
+              </div>
+
+              <!-- Media Overlay -->
+              {%- if block.settings.overlay_enabled -%}
+                <div 
+                  class="premium-slideshow__overlay"
+                  style="
+                    {%- if block.settings.overlay_gradient_enabled and block.settings.overlay_gradient_css != blank -%}
+                      background: {{ block.settings.overlay_gradient_css }};
+                    {%- else -%}
+                      background-color: {{ block.settings.overlay_color }};
+                      opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};
+                    {%- endif -%}
+                  "
+                ></div>
+              {%- endif -%}
+
+              <!-- Slide Contents -->
+              <div class="premium-slideshow__content-wrapper premium-slideshow__content-wrapper--h-{{ block.settings.horizontal_position }} premium-slideshow__content-wrapper--v-{{ block.settings.vertical_position }}">
+                <div class="premium-slideshow__content premium-slideshow__content--align-{{ block.settings.text_align }}">
+                  {%- if block.settings.subheading != blank -%}
+                    <span class="premium-slideshow__subheading">{{ block.settings.subheading | escape }}</span>
+                  {%- endif -%}
+                  
+                  {%- if block.settings.heading != blank -%}
+                    <h2 class="premium-slideshow__heading">{{ block.settings.heading | escape }}</h2>
+                  {%- endif -%}
+
+                  {%- if block.settings.description != blank -%}
+                    <div class="premium-slideshow__description">{{ block.settings.description }}</div>
+                  {%- endif -%}
+
+                  {%- if block.settings.button_text != blank or block.settings.button_text_2 != blank -%}
+                    <div class="premium-slideshow__buttons">
+                      {%- if block.settings.button_text != blank -%}
+                        <a 
+                          href="{{ block.settings.button_url | default: '#' }}" 
+                          class="premium-slideshow__button premium-slideshow__button--primary"
+                          style="
+                            background-color: {{ block.settings.button_bg_color }};
+                            color: {{ block.settings.button_text_color }};
+                            {%- if block.settings.button_bg_color == 'transparent' or block.settings.button_bg_color == 'rgba(0,0,0,0)' -%}
+                              border-color: {{ block.settings.button_text_color }};
+                            {%- endif -%}
+                          "
+                        >
+                          {{ block.settings.button_text | escape }}
+                        </a>
+                      {%- endif -%}
+
+                      {%- if block.settings.button_text_2 != blank -%}
+                        <a 
+                          href="{{ block.settings.button_url_2 | default: '#' }}" 
+                          class="premium-slideshow__button premium-slideshow__button--secondary"
+                          style="
+                            background-color: {{ block.settings.button_bg_color_2 }};
+                            color: {{ block.settings.button_text_color_2 }};
+                            {%- if block.settings.button_bg_color_2 == 'transparent' or block.settings.button_bg_color_2 == 'rgba(0,0,0,0)' -%}
+                              border-color: {{ block.settings.button_text_color_2 }};
+                            {%- endif -%}
+                          "
+                        >
+                          {{ block.settings.button_text_2 | escape }}
+                        </a>
+                      {%- endif -%}
+                    </div>
+                  {%- endif -%}
+                </div>
+              </div>
+
+            </div>
+          {%- endfor -%}
+        </div>
+
+        <!-- Slider Arrow Navigation Buttons -->
+        <button type="button" class="premium-slideshow__arrow premium-slideshow__arrow--prev" aria-label="Previous slide" data-arrow-prev>
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button type="button" class="premium-slideshow__arrow premium-slideshow__arrow--next" aria-label="Next slide" data-arrow-next>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
+        <!-- Slider Dots Pagination Indicators -->
+        <div class="premium-slideshow__dots premium-slideshow__dots--{{ section.settings.dot_position }}" data-dots>
+          {%- for block in section.blocks -%}
+            <button 
+              type="button" 
+              class="premium-slideshow__dot {% if forloop.first %}is-active{% endif %}" 
+              data-index="{{ forloop.index0 }}"
+              aria-label="Go to slide {{ forloop.index }}"
+              aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+            ></button>
+          {%- endfor -%}
+        </div>
+
+      </div>
+    </hero-slideshow>
+  </div>
+{%- endif -%}
+
+<script>
+  if (!customElements.get('hero-slideshow')) {
+    class HeroSlideshow extends HTMLElement {
+      constructor() {
+        super();
+        this.activeIndex = 0;
+        this.autoplayTimer = null;
+        this.isInteracting = false;
+        
+        // Touch swipes properties
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.touchStartTime = 0;
+      }
+
+      connectedCallback() {
+        this.slideshow = this.querySelector('.premium-slideshow');
+        if (!this.slideshow) return;
+
+        this.track = this.querySelector('.premium-slideshow__track');
+        this.slides = Array.from(this.querySelectorAll('.premium-slideshow__slide'));
+        this.dotsContainer = this.querySelector('[data-dots]');
+        this.dots = this.dotsContainer ? Array.from(this.dotsContainer.querySelectorAll('.premium-slideshow__dot')) : [];
+        
+        this.arrowPrev = this.querySelector('[data-arrow-prev]');
+        this.arrowNext = this.querySelector('[data-arrow-next]');
+        this.customCursor = this.querySelector('[data-cursor]');
+
+        // Options from data attributes
+        this.autoplayEnabled = this.getAttribute('data-autoplay') === 'true';
+        this.autoplaySpeed = parseInt(this.getAttribute('data-autoplay-speed')) || 5000;
+        // Autoplay only cycles the first N slides (0 = all); the rest stay reachable by arrows/dots/swipe
+        this.autoplayLimit = parseInt(this.getAttribute('data-autoplay-limit'), 10);
+        if (isNaN(this.autoplayLimit)) this.autoplayLimit = 5;
+        this.infinite = this.getAttribute('data-infinite') === 'true';
+        this.cursorNavigation = this.getAttribute('data-cursor-navigation') === 'true';
+
+        if (this.slides.length <= 1) {
+          if (this.arrowPrev) this.arrowPrev.style.display = 'none';
+          if (this.arrowNext) this.arrowNext.style.display = 'none';
+          if (this.dotsContainer) this.dotsContainer.style.display = 'none';
+          this.cursorNavigation = false;
+        }
+
+        this.init();
+      }
+
+      disconnectedCallback() {
+        this.stopAutoplay();
+        this.removeEventListeners();
+      }
+
+      init() {
+        this.setupEventListeners();
+        
+        // Initialize the first slide media (especially video)
+        this.goTo(0);
+
+        // Fallback for browser blocked autoplay policies on page load
+        const forceAutoplay = () => {
+          const activeSlide = this.slides[this.activeIndex];
+          if (activeSlide) {
+            const video = activeSlide.querySelector('video');
+            if (video && video.paused) {
+              video.play().catch(() => {});
+            }
+          }
+          document.removeEventListener('click', forceAutoplay);
+          document.removeEventListener('touchstart', forceAutoplay);
+        };
+        document.addEventListener('click', forceAutoplay);
+        document.addEventListener('touchstart', forceAutoplay);
+      }
+
+      setupEventListeners() {
+        // Nav Arrow Clicks
+        if (this.arrowPrev) {
+          this.arrowPrev.addEventListener('click', this.handlePrevClick.bind(this));
+        }
+        if (this.arrowNext) {
+          this.arrowNext.addEventListener('click', this.handleNextClick.bind(this));
+        }
+
+        // Nav Dot Clicks
+        this.dots.forEach(dot => {
+          dot.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.getAttribute('data-index'));
+            this.goTo(index);
+          });
+        });
+
+        // Keyboard Navigation Support
+        this.addEventListener('keydown', this.handleKeyDown.bind(this));
+
+        // Touch gestures for mobile/tablet swipe
+        this.slideshow.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+        this.slideshow.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+
+        // Hover events to pause autoplay
+        this.slideshow.addEventListener('mouseenter', () => {
+          this.isInteracting = true;
+          this.stopAutoplay();
+          if (this.customCursor && this.cursorNavigation) {
+            this.customCursor.classList.add('is-active');
+          }
+        });
+
+        this.slideshow.addEventListener('mouseleave', () => {
+          this.isInteracting = false;
+          if (this.autoplayEnabled) {
+            const activeSlide = this.slides[this.activeIndex];
+            const hasVideo = activeSlide && activeSlide.querySelector('video');
+            if (!hasVideo) {
+              this.startAutoplay();
+            }
+          }
+          if (this.customCursor) {
+            this.customCursor.classList.remove('is-active');
+            this.customCursor.style.transform = 'translate3d(0,0,0) scale(0.2)';
+          }
+        });
+
+        // Hover Cursor Navigation Movement
+        if (this.cursorNavigation && this.customCursor) {
+          this.slideshow.addEventListener('mousemove', this.handleMouseMove.bind(this));
+          this.slideshow.addEventListener('mousedown', () => this.customCursor.classList.add('is-clicking'));
+          this.slideshow.addEventListener('mouseup', () => this.customCursor.classList.remove('is-clicking'));
+          this.slideshow.addEventListener('click', this.handleSliderClick.bind(this));
+        }
+
+        // Video Ended Transition
+        this.querySelectorAll('video').forEach(video => {
+          video.addEventListener('ended', () => {
+            const slide = video.closest('.premium-slideshow__slide');
+            const slideIndex = parseInt(slide.getAttribute('data-index'));
+            if (slideIndex === this.activeIndex) {
+              this.autoNext();
+            }
+          });
+        });
+
+        // Shopify Editor events integration
+        document.addEventListener('shopify:block:select', this.handleBlockSelect.bind(this));
+        document.addEventListener('shopify:block:deselect', this.handleBlockDeselect.bind(this));
+      }
+
+      removeEventListeners() {
+        document.removeEventListener('shopify:block:select', this.handleBlockSelect.bind(this));
+        document.removeEventListener('shopify:block:deselect', this.handleBlockDeselect.bind(this));
+      }
+
+      handlePrevClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.prev();
+      }
+
+      handleNextClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.next();
+      }
+
+      goTo(index) {
+        if (index !== 0) { var sec = this.closest('.shopify-section'); if (sec && sec.__hydrateSlides) var lim = this.autoplayLimit > 0 ? this.autoplayLimit : Infinity; sec.__hydrateSlides(this.isInteracting || index >= lim ? Infinity : lim); }
+        const total = this.slides.length;
+        if (total === 0) return;
+
+        // Boundary checks
+        if (index < 0) {
+          if (this.infinite) {
+            index = total - 1;
+          } else {
+            return;
+          }
+        } else if (index >= total) {
+          if (this.infinite) {
+            index = 0;
+          } else {
+            return;
+          }
+        }
+
+        const prevActiveIndex = this.activeIndex;
+        this.activeIndex = index;
+
+        // Toggle slides active state
+        this.slides.forEach((slide, idx) => {
+          if (idx === index) {
+            slide.classList.add('is-active');
+            slide.setAttribute('aria-hidden', 'false');
+            this.playSlideMedia(slide);
+          } else {
+            slide.classList.remove('is-active');
+            slide.setAttribute('aria-hidden', 'true');
+            this.pauseSlideMedia(slide);
+          }
+        });
+
+        // Toggle dots active state
+        this.dots.forEach((dot, idx) => {
+          if (idx === index) {
+            dot.classList.add('is-active');
+            dot.setAttribute('aria-current', 'true');
+          } else {
+            dot.classList.remove('is-active');
+            dot.setAttribute('aria-current', 'false');
+          }
+        });
+
+        // Keyboard Focus management inside active slide
+        const activeSlide = this.slides[index];
+        const focusable = activeSlide.querySelectorAll('a, button');
+        if (focusable.length > 0 && this.isInteracting) {
+          focusable[0].focus();
+        }
+      }
+
+      next() {
+        this.goTo(this.activeIndex + 1);
+      }
+
+      prev() {
+        this.goTo(this.activeIndex - 1);
+      }
+
+      // Next slide for autoplay: loops within the first `autoplayLimit` slides
+      autoNext() {
+        const total = this.slides.length;
+        const limit = this.autoplayLimit > 0 ? Math.min(this.autoplayLimit, total) : total;
+        if (this.activeIndex + 1 >= limit) {
+          this.goTo(0);
+        } else {
+          this.next();
+        }
+      }
+
+      startAutoplay() {
+        this.stopAutoplay();
+        // Keep the first screen still until the page has loaded (better Speed Index / LCP)
+        if (document.readyState !== 'complete') {
+          if (!this.waitingForLoad) {
+            this.waitingForLoad = true;
+            window.addEventListener('load', () => {
+              this.waitingForLoad = false;
+              if (this.autoplayEnabled && !this.isInteracting) this.startAutoplay();
+            }, { once: true });
+          }
+          return;
+        }
+        this.autoplayTimer = setInterval(() => {
+          this.autoNext();
+        }, this.autoplaySpeed);
+      }
+
+      stopAutoplay() {
+        if (this.autoplayTimer) {
+          clearInterval(this.autoplayTimer);
+          this.autoplayTimer = null;
+        }
+      }
+
+
+      // Performance Optimizing Media Loading/Playing
+      playSlideMedia(slide) {
+        const video = slide.querySelector('video');
+        if (!video) {
+          if (this.autoplayEnabled && !this.isInteracting) {
+            this.startAutoplay();
+          }
+          return;
+        }
+
+        // Active slide has a video, pause autoplay so video plays to completion
+        this.stopAutoplay();
+
+        this.loadVideoSources(video);
+        
+        video.muted = true;
+        
+        // Wait a tiny frame for src to bind and load, then play
+        setTimeout(() => {
+          video.play().catch(error => {
+            console.log('Video autoplay blocked or failed:', error);
+            // Fallback: If autoplay fails/blocks, fall back to standard autoplay timer
+            if (this.autoplayEnabled && !this.isInteracting) {
+              this.startAutoplay();
+            }
+          });
+        }, 50);
+      }
+
+      pauseSlideMedia(slide) {
+        const video = slide.querySelector('video');
+        if (video) {
+          video.pause();
+        }
+      }
+
+      loadVideoSources(videoEl) {
+        const width = window.innerWidth;
+        const isMobile = width < 768;
+        const attr = isMobile ? 'data-src-mobile' : 'data-src-desktop';
+        
+        let srcUrl = videoEl.getAttribute(attr);
+        if (!srcUrl && isMobile) {
+          srcUrl = videoEl.getAttribute('data-src-desktop');
+        }
+
+        if (srcUrl && videoEl.src !== srcUrl) {
+          videoEl.src = srcUrl;
+          videoEl.load();
+        }
+      }
+
+      // Slider Clicks: Cursor Direction Navigation
+      handleSliderClick(e) {
+        // Exit if clicked interactive items like CTA buttons, links, dots, arrows
+        if (e.target.closest('a, button, .premium-slideshow__arrow, .premium-slideshow__dots')) {
+          return;
+        }
+
+        const rect = this.slideshow.getBoundingClientRect();
+        const relativeX = e.clientX - rect.left;
+        const width = rect.width;
+
+        if (relativeX < width / 2) {
+          this.prev();
+        } else {
+          this.next();
+        }
+      }
+
+      handleMouseMove(e) {
+        if (!this.customCursor) return;
+
+        const rect = this.slideshow.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Check if cursor hovers over buttons/arrows to fade out custom cursor
+        const hoverInteractive = e.target.closest('a, button, .premium-slideshow__arrow, .premium-slideshow__dots');
+        
+        if (hoverInteractive) {
+          this.customCursor.classList.remove('is-active');
+          this.slideshow.style.cursor = 'auto';
+        } else {
+          this.customCursor.classList.add('is-active');
+          this.slideshow.style.cursor = 'none';
+
+          // Determine direction
+          const direction = x < rect.width / 2 ? 'prev' : 'next';
+          this.customCursor.setAttribute('data-direction', direction);
+
+          // Update position (centering cursor element)
+          const cursorSize = 28; // 56px / 2
+          this.customCursor.style.transform = `translate3d(${x - cursorSize}px, ${y - cursorSize}px, 0) scale(1)`;
+        }
+      }
+
+      // Swipes support
+      handleTouchStart(e) {
+        this.touchStartX = e.touches[0].clientX;
+        this.touchStartY = e.touches[0].clientY;
+        this.touchStartTime = Date.now();
+      }
+
+      handleTouchEnd(e) {
+        const diffX = e.changedTouches[0].clientX - this.touchStartX;
+        const diffY = e.changedTouches[0].clientY - this.touchStartY;
+        const duration = Date.now() - this.touchStartTime;
+
+        // Check for simple fast swipe
+        if (Math.abs(diffX) > 40 && Math.abs(diffY) < 80 && duration < 300) {
+          if (diffX > 0) {
+            this.prev();
+          } else {
+            this.next();
+          }
+        }
+      }
+
+      // Keyboard navigation helper
+      handleKeyDown(e) {
+        if (e.key === 'ArrowLeft') {
+          this.prev();
+        } else if (e.key === 'ArrowRight') {
+          this.next();
+        }
+      }
+
+      // Shopify Editor Blocks hooks
+      handleBlockSelect(e) {
+        if (e.detail.sectionId !== this.closest('.shopify-section').id.replace('shopify-section-', '')) return;
+        
+        const blockId = e.detail.blockId;
+        const selectedSlide = this.slides.find(slide => slide.getAttribute('data-block-id') === blockId || slide.outerHTML.includes(blockId));
+        
+        if (selectedSlide) {
+          const index = parseInt(selectedSlide.getAttribute('data-index'));
+          this.stopAutoplay();
+          this.goTo(index);
+        }
+      }
+
+      handleBlockDeselect(e) {
+        if (e.detail.sectionId !== this.closest('.shopify-section').id.replace('shopify-section-', '')) return;
+        if (this.autoplayEnabled) {
+          this.startAutoplay();
+        }
+      }
+    }
+
+    customElements.define('hero-slideshow', HeroSlideshow);
+  }
+</script>
+
+
+<script>
+  (function () {
+    var root = document.getElementById('shopify-section-{{ section.id }}');
+    if (!root) return;
+    var hydratedUpTo = 0;
+    // Load deferred slide images for slides with index < upTo (Infinity = all)
+    function hydrate(upTo) {
+      if (upTo === undefined || upTo === null) upTo = Infinity;
+      if (upTo <= hydratedUpTo) return;
+      hydratedUpTo = upTo;
+      root.querySelectorAll('.premium-slideshow__slide').forEach(function (slide, i) {
+        if (i >= upTo) return;
+        slide.querySelectorAll('[data-deferred-srcset]').forEach(function (el) {
+          el.setAttribute('srcset', el.getAttribute('data-deferred-srcset'));
+          el.removeAttribute('data-deferred-srcset');
+        });
+        slide.querySelectorAll('img[data-deferred-src]').forEach(function (el) {
+          el.src = el.getAttribute('data-deferred-src');
+          el.removeAttribute('data-deferred-src');
+        });
+      });
+    }
+    var autoplayLimit = {{ section.settings.autoplay_slide_limit | default: 5 | json }};
+    root.__hydrateSlides = hydrate;
+    ['pointerdown', 'keydown', 'focusin'].forEach(function (ev) {
+      root.addEventListener(ev, function () { hydrate(Infinity); }, { once: true, passive: true });
+    });
+    function later() { setTimeout(function () { hydrate(autoplayLimit > 0 ? autoplayLimit : Infinity); }, 1500); }
+    if (document.readyState === 'complete') later(); else window.addEventListener('load', later);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Hero Slideshow (Premium)",
+  "tag": "section",
+  "class": "shopify-section--premium-slideshow",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Desktop Height"
+    },
+    {
+      "type": "select",
+      "id": "desktop_height",
+      "label": "Height Preset",
+      "default": "medium",
+      "options": [
+        { "value": "adapt", "label": "Adapt to Image (Natural Height)" },
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" },
+        { "value": "xlarge", "label": "Extra Large" },
+        { "value": "fullscreen", "label": "Full Screen (100vh)" },
+        { "value": "custom", "label": "Custom Height (px)" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "custom_desktop_height",
+      "min": 250,
+      "max": 1000,
+      "step": 10,
+      "unit": "px",
+      "label": "Custom Desktop Height",
+      "default": 600
+    },
+    {
+      "type": "header",
+      "content": "Mobile Height"
+    },
+    {
+      "type": "select",
+      "id": "mobile_height",
+      "label": "Height Preset",
+      "default": "medium",
+      "options": [
+        { "value": "adapt", "label": "Adapt to Image (Natural Height)" },
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" },
+        { "value": "fullscreen", "label": "Full Screen" },
+        { "value": "custom", "label": "Custom Height (px)" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "custom_mobile_height",
+      "min": 150,
+      "max": 800,
+      "step": 10,
+      "unit": "px",
+      "label": "Custom Mobile Height",
+      "default": 450
+    },
+    {
+      "type": "header",
+      "content": "Typography Controls (Desktop)"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 24,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading Font Size",
+      "default": 54
+    },
+    {
+      "type": "range",
+      "id": "subheading_size",
+      "min": 12,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading Font Size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "desc_size",
+      "min": 12,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Description Font Size",
+      "default": 18
+    },
+    {
+      "type": "header",
+      "content": "Typography Controls (Mobile)"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 18,
+      "max": 60,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading Font Size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "subheading_size_mobile",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading Font Size",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "desc_size_mobile",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Description Font Size",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Slider Options"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Enable Autoplay",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "min": 2,
+      "max": 15,
+      "step": 1,
+      "unit": "s",
+      "label": "Autoplay Speed",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "autoplay_slide_limit",
+      "min": 0,
+      "max": 15,
+      "step": 1,
+      "label": "Autoplay only the first slides",
+      "info": "Autoplay loops through this many slides; the rest are reached with arrows, dots or swipe. 0 = all slides.",
+      "default": 5
+    },
+    {
+      "type": "checkbox",
+      "id": "infinite_loop",
+      "label": "Infinite Loop Slides",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "fade_duration",
+      "min": 200,
+      "max": 1500,
+      "step": 50,
+      "unit": "ms",
+      "label": "Fade Duration",
+      "default": 600
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_cursor_navigation",
+      "label": "Enable Hover Cursor Navigation",
+      "info": "Adds premium directional left/right custom mouse pointer.",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Arrow Navigation Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows_desktop",
+      "label": "Show Arrows on Desktop",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows_mobile",
+      "label": "Show Arrows on Mobile",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "arrow_size",
+      "min": 30,
+      "max": 70,
+      "step": 5,
+      "unit": "px",
+      "label": "Arrow Button Size",
+      "default": 50
+    },
+    {
+      "type": "color",
+      "id": "arrow_bg_color",
+      "label": "Arrow Background Color",
+      "default": "rgba(0, 0, 0, 0.4)"
+    },
+    {
+      "type": "color",
+      "id": "arrow_icon_color",
+      "label": "Arrow Icon Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "arrow_border_radius",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "%",
+      "label": "Arrow Border Radius",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "arrow_offset_desktop",
+      "min": 5,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Desktop Arrow Offset",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "arrow_offset_mobile",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Mobile Arrow Offset",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Dot Pagination Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dots_desktop",
+      "label": "Show Dots on Desktop",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dots_mobile",
+      "label": "Show Dots on Mobile",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "dot_position",
+      "label": "Dot Position Alignment",
+      "default": "center",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "dot_size",
+      "min": 6,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Dot Indicator Size",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "dot_gap",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Dot Spacing Gap",
+      "default": 8
+    },
+    {
+      "type": "color",
+      "id": "dot_color",
+      "label": "Dot Color (Inactive)",
+      "default": "rgba(255, 255, 255, 0.4)"
+    },
+    {
+      "type": "color",
+      "id": "active_dot_color",
+      "label": "Dot Color (Active)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "dot_bottom_spacing",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom Spacing",
+      "default": 25
+    },
+    {
+      "type": "header",
+      "content": "Button Global Styles"
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Button Border Radius",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section Layout Settings"
+    },
+    {
+      "type": "text",
+      "id": "section_max_width",
+      "label": "Section Max Width (CSS)",
+      "default": "100%",
+      "info": "Use 100% for full width, or pixel value like 1400px."
+    },
+    {
+      "type": "range",
+      "id": "z_index",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "label": "Section Z-Index",
+      "default": 3
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Slide",
+      "settings": [
+        {
+          "type": "header",
+          "content": "Media Settings"
+        },
+        {
+          "type": "image_picker",
+          "id": "desktop_image",
+          "label": "Desktop Image",
+          "info": "1800 x 900px recommended"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Mobile Image",
+          "info": "Optional. 800 x 1000px recommended"
+        },
+        {
+          "type": "video",
+          "id": "desktop_video",
+          "label": "Desktop Video",
+          "info": "Hosted MP4 video"
+        },
+        {
+          "type": "video",
+          "id": "mobile_video",
+          "label": "Mobile Video",
+          "info": "Optional. Hosted MP4 video"
+        },
+        {
+          "type": "header",
+          "content": "Slide Content"
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Subheading",
+          "default": "PREMIUM SLIDESHOW"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Modern Shopify Hero Banner"
+        },
+        {
+          "type": "richtext",
+          "id": "description",
+          "label": "Description",
+          "default": "<p>Create a stunning impression with this custom-tailored, fluid slideshow built for modern browsers.</p>"
+        },
+        {
+          "type": "url",
+          "id": "slide_link",
+          "label": "Slide Link (Makes entire slide clickable)"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "label": "Button Label",
+          "default": "Shop Now"
+        },
+        {
+          "type": "url",
+          "id": "button_url",
+          "label": "Button Link"
+        },
+        {
+          "type": "text",
+          "id": "button_text_2",
+          "label": "Button 2 Label",
+          "info": "Optional"
+        },
+        {
+          "type": "url",
+          "id": "button_url_2",
+          "label": "Button 2 Link",
+          "info": "Optional"
+        },
+        {
+          "type": "header",
+          "content": "Slide Layout Controls"
+        },
+        {
+          "type": "select",
+          "id": "horizontal_position",
+          "label": "Content Horizontal Position",
+          "default": "center",
+          "options": [
+            { "value": "left", "label": "Left" },
+            { "value": "center", "label": "Center" },
+            { "value": "right", "label": "Right" }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "vertical_position",
+          "label": "Content Vertical Position",
+          "default": "middle",
+          "options": [
+            { "value": "top", "label": "Top" },
+            { "value": "middle", "label": "Middle" },
+            { "value": "bottom", "label": "Bottom" }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "text_align",
+          "label": "Text Alignment",
+          "default": "center",
+          "options": [
+            { "value": "left", "label": "Left" },
+            { "value": "center", "label": "Center" },
+            { "value": "right", "label": "Right" }
+          ]
+        },
+        {
+          "type": "range",
+          "id": "content_width",
+          "min": 300,
+          "max": 1200,
+          "step": 20,
+          "unit": "px",
+          "label": "Max Content Width",
+          "default": 700
+        },
+        {
+          "type": "range",
+          "id": "content_padding_desktop",
+          "min": 10,
+          "max": 100,
+          "step": 5,
+          "unit": "px",
+          "label": "Content Padding (Desktop)",
+          "default": 40
+        },
+        {
+          "type": "range",
+          "id": "content_padding_mobile",
+          "min": 5,
+          "max": 50,
+          "step": 5,
+          "unit": "px",
+          "label": "Content Padding (Mobile)",
+          "default": 20
+        },
+        {
+          "type": "header",
+          "content": "Color Styling"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Text Color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "subheading_color",
+          "label": "Subheading Color",
+          "default": "#e5e5e5"
+        },
+        {
+          "type": "color",
+          "id": "button_bg_color",
+          "label": "Button Background Color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "button_text_color",
+          "label": "Button Text Color",
+          "default": "#000000"
+        },
+        {
+          "type": "color",
+          "id": "button_bg_color_2",
+          "label": "Button 2 Background Color",
+          "default": "transparent"
+        },
+        {
+          "type": "color",
+          "id": "button_text_color_2",
+          "label": "Button 2 Text Color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "header",
+          "content": "Overlay Settings"
+        },
+        {
+          "type": "checkbox",
+          "id": "overlay_enabled",
+          "label": "Enable Media Overlay",
+          "default": true
+        },
+        {
+          "type": "color",
+          "id": "overlay_color",
+          "label": "Overlay Color",
+          "default": "#000000"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "min": 0,
+          "max": 90,
+          "step": 5,
+          "unit": "%",
+          "label": "Overlay Opacity",
+          "default": 30
+        },
+        {
+          "type": "checkbox",
+          "id": "overlay_gradient_enabled",
+          "label": "Enable Overlay Gradient",
+          "default": false
+        },
+        {
+          "type": "text",
+          "id": "overlay_gradient_css",
+          "label": "Custom Overlay Gradient CSS",
+          "info": "Example: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0))"
+        },
+        {
+          "type": "header",
+          "content": "Animations"
+        },
+        {
+          "type": "select",
+          "id": "content_animation",
+          "label": "Content Intro Animation",
+          "default": "fade-up",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "fade-in", "label": "Fade In" },
+            { "value": "fade-up", "label": "Fade Up" },
+            { "value": "scale-in", "label": "Scale In" },
+            { "value": "slide-left", "label": "Slide Left" },
+            { "value": "slide-right", "label": "Slide Right" }
+          ]
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero Slideshow (Premium)",
+      "blocks": [
+        {
+          "type": "slide",
+          "settings": {
+            "subheading": "First Slide Subheading",
+            "heading": "Premium Hero Title One",
+            "content_animation": "fade-up"
+          }
+        },
+        {
+          "type": "slide",
+          "settings": {
+            "subheading": "Second Slide Subheading",
+            "heading": "Premium Hero Title Two",
+            "content_animation": "fade-up"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
